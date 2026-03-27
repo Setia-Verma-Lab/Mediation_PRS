@@ -5,7 +5,7 @@
 
 ## 1  Overview
 
-This script computes a Mediated Polygenic Risk Score (Mediated PRS) that combines a standard GWAS-weighted PRS with a mediator-adjusted component. It accepts genotype data in PLINK binary format, a SNP weight sheet, and a sample phenotype/covariate sheet, then outputs per-sample PRS values and (optionally) classifier performance metrics and ROC plots.
+This script computes a Mediated Polygenic Risk Score (Mediated PRS) that combines a standard GWAS-weighted PRS with a mediator-adjusted component. It accepts genotype data in PLINK binary format, a SNP weight sheet, and a sample phenotype/covariate sheet, then outputs per-sample PRS values and (optionally) classifier performance metrics and ROC plots. Prior to running this script you should have gather effect sizes from two GWASes conducted in datsets independent of your test cohort. One GWAS should be your Mediated Phenotype (MP) adjusted by Mediator (M).The other should be a GWAS of you Mediator (M)
 
 - **Script file:** `mediated_score_calc_01_2026.py`
 - **External dependency:** `genotype_filter_01_2026.sh` (must be in the working directory unless `--skip_raw` is used)
