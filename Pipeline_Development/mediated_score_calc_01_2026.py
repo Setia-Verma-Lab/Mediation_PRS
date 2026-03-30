@@ -172,7 +172,7 @@ snp_ids = snp_list["SNP_ID"]
 snp_toextract = snp_list['SNP_ID']
 snp_toextract.to_csv("snp_list.txt",sep="\t",index=False,header=False)
 effect_allele_file = pd.DataFrame()
-effect_allele_file['SNP_ID'] = snp_sheet[snp_list['SNP_ID']] = snp_list['chr'].str.replace('chr', '', regex=False) + ':' + snp_list['start'].astype(str)
+effect_allele_file['SNP_ID'] = snp_sheet['SNP_ID']
 effect_allele_file['A1'] = snp_sheet['EA_MP']
 effect_allele_file.to_csv(f"plink_{samplesheet_path.split('/')[-1]}_ea_file.txt",sep="\t",index=False)
 
