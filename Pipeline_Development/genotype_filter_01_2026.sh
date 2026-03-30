@@ -10,7 +10,6 @@
 # done 
 echo "Plink Filtering Started..."
 plink --bfile ${plink_prefix} --keep ${sample_names} --extract ${snplist} --export A  --export-allele ${effect_allele_file} --out "./${plink_output_prefix}_filtered"
-echo "Done Making Raw Files ! :)"
 if [ -f "./${plink_output_prefix}_filtered.raw" ] ; then
     echo "Raw file created successfully at ${plink_output_prefix}_filtered.raw"
 else

@@ -27,7 +27,7 @@ parser.add_argument("--skip_raw",action="store_true",help="skip making raw files
 # whether or not to caulcate, auc and make plots or just return scores
 parser.add_argument("--calculate_auc",action="store_true",help="calculate auc & make plots?")
 parser.add_argument("--type_of_pheno",help="binary or quantitative phenotype")
-parser.add_argument("--use_pcs",action="store_true")
+parser.add_argument("--use_pcs")
 
 args = parser.parse_args()
 
@@ -39,6 +39,8 @@ type_of_pheno = args.type_of_pheno
 use_pcs = args.use_pcs
 skip_raw = args.skip_raw
 print(f'Value of skip_raw: {skip_raw}')
+
+
 
 def make_raw_files(plink_input):
     print(plink_input)
@@ -78,9 +80,9 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     fpr, tpr, thresholds = metrics.roc_curve(y_test,y_probs)
     roc_auc = metrics.auc(fpr, tpr)
     print(roc_auc)
-    print(y_test.iloc[:,0])
-    n1 = sum(y_test.iloc[:,0] == 1 ) #number of positive values in the labels
-    n2 = sum(y_test.iloc[:,0] != 1 ) #number of negative values in the labels
+    y_test_vals = y_test.values.ravel()
+    n1 = sum(y_test_vals == 1)
+    n2 = sum(y_test_vals != 1)
     q1 = roc_auc / (2 - roc_auc)
     q2 = 2 * roc_auc**2 / (1 + roc_auc)
     se_roc_auc = math.sqrt((roc_auc*(1 - roc_auc) + (n1 - 1)*(q1 - roc_auc**2) + (n2 - 1)*(q2 - roc_auc**2)) / (n1*n2))
@@ -144,8 +146,9 @@ def make_lin_reg_classifier_overall(input,score,pheno,title):
 
 # make sample names file for plink input
 samplesheet  = pd.read_table(samplesheet_path,index_col="IID")
-#sample_names = pd.DataFrame({"FID": samplesheet.index, "IID": samplesheet.index})
-sample_names = pd.DataFrame({"FID": 0, "IID": samplesheet.index})
+
+fam_file = pd.read_table(f"{plink_prefix}.fam",usecols=[0,1],header=None,names=["FID","IID"],sep="\s+")
+sample_names = fam_file
 sample_names.to_csv("./sample_names.txt",sep="\t",index=False)
 
 
@@ -157,12 +160,16 @@ snp_list = pd.DataFrame()
 snp_list["SNP_ID"] = snp_sheet["SNP_ID"]
 print(snp_list.columns)
 print(snp_list)
-snp_list[["chr","start"]] = snp_list["SNP_ID"].str.split(":").tolist()
+if snp_list["SNP_ID"].str.contains(":").any():
+    snp_list[["chr", "start"]] = snp_list["SNP_ID"].str.split(":").str[:2].tolist()
+elif snp_list["SNP_ID"].str.contains("_").any():
+    snp_list[["chr", "start"]] = snp_list["SNP_ID"].str.split("_").str[:2].tolist()
 snp_list["stop"] = snp_list["start"]
-snp_list= snp_list[["chr","start","stop"]]
-snp_list['SNP_ID'] = snp_list['chr'].str.replace('chr', '', regex=False) + ':' + snp_list['start'].astype(str)
+print("LOOK HERE!")
+print(snp_list.columns)
+#snp_list['SNP_ID'] = snp_list['chr'].str.replace('chr', '', regex=False) + ':' + snp_list['start'].astype(str)
 snp_ids = snp_list["SNP_ID"]
-snp_toextract = snp_list['SNP_ID'].str.replace('^chr', '', regex=True)
+snp_toextract = snp_list['SNP_ID']
 snp_toextract.to_csv("snp_list.txt",sep="\t",index=False,header=False)
 effect_allele_file = pd.DataFrame()
 effect_allele_file['SNP_ID'] = snp_sheet[snp_list['SNP_ID']] = snp_list['chr'].str.replace('chr', '', regex=False) + ':' + snp_list['start'].astype(str)
@@ -229,7 +236,7 @@ plink_output_prefix = plink_prefix.split("/")[-1]
 #filtered_genotypes.drop(columns=["PAT","MAT","SEX","PHENOTYPE","FID"],inplace=True) 07/2025
 filtered_genotypes.columns = filtered_genotypes.columns.str.split(":").str[0:2].str.join(":").str.replace("chr", "", regex=True)
 print(filtered_genotypes.columns)
-filtered_genotypes = 2-filtered_genotypes #assumes effect allele
+# filtered_genotypes = 2-filtered_genotypes #assumes effect allele
 filtered_genotypes.to_csv(f"{plink_output_prefix}_filtered.raw",sep="\t")
 filtered_genotypes_file = pd.read_table(f"{plink_output_prefix}_filtered.raw",index_col='IID')
 print("Genotype DF Made !")
@@ -249,12 +256,11 @@ genotype_and_mediator.columns = genotype_and_mediator.columns.str.replace(r'_[AC
 
 
 
-
 print("genotype_and_mediator DF")
 print(genotype_and_mediator)
 
 print("genotype_and_mediator columns")
-#print(genotype_and_mediator.columns.tolist())
+print(genotype_and_mediator.columns.tolist())
 
 print("THESE ARE SNP IDS")
 print(snp_ids)
@@ -287,7 +293,8 @@ print(genotype_and_mediator.columns)
 
 print("STARTING PRS VALUE DF")
 
-#POAG GRS calculation
+use_pcs = int(use_pcs)
+
 prs_values['PRS_P'] = genotype_and_mediator[mediated_phenotype_col_list].sum(axis=1) 
 # prs_values['PRS_P'] = prs_values['PRS_P'].apply(lambda x: (x - prs_values['PRS_P'].mean()) / prs_values['PRS_P'].std())
 # Mediated Phenotype * Mediated Phenotype Individual
@@ -295,8 +302,7 @@ prs_values['PRS_M'] = genotype_and_mediator["M"].values * genotype_and_mediator[
 #prs_values['PRS_M'] = prs_values['PRS_M'].apply(lambda x: (x - prs_values['PRS_M'].mean()) / prs_values['PRS_M'].std())
 # Mediated PRS sum of PRS_M for PRS_P
 prs_values["PRS"] = prs_values[['PRS_P', 'PRS_M']].sum(axis=1) 
-if use_pcs:
-   prs_values[["PC1","PC2","PC3","PC4"]] = genotype_and_mediator[["PC1","PC2","PC3","PC4"]]
+prs_values[[f"PC{n}" for n in range(1, use_pcs + 1)]] = genotype_and_mediator[[f"PC{n}" for n in range(1, use_pcs + 1) ]].copy()
 prs_values = prs_values.dropna()
 print(prs_values)
 print(prs_values.dtypes)
@@ -314,24 +320,20 @@ prs_values.to_csv(full_path, sep="\t")
 #prs_values.to_csv(f"{snpsheet_path}_Mediated_PRS_output.txt")
 #prs_values.to_csv(f"./IOP_asjusted_PRS_values.txt")
 
-prs_values = prs_values[prs_values['P'] != 'SUS']
-print(f"prs_values_after :{prs_values['P'].value_counts()}")
-
 if calc_auc and not prs_values.empty:
     if type_of_pheno == "binary":
         print("PRS Calculated Generating Plots & Calculating AUC")
         samplesheet_title = samplesheet_path.split("/")[-1].replace(".txt","")
         # output = make_log_reg_classifier_overall(prs_values,"PRS","P",samplesheet_title)
-        clf_prs,roc_auc_prs,display_prs,performance_metrics_prs = make_log_reg_classifier_overall(prs_values,"M","P",samplesheet_title)
+        clf_prs,roc_auc_prs,display_prs,performance_metrics_prs = make_log_reg_classifier_overall(prs_values,"M","P",samplesheet_title,use_pcs)
         performance_metrics_prs.to_csv(f"{samplesheet_title}_metrics.txt",index=False,sep="\t")
     elif type_of_pheno == "quantitative":
         print("PRS Calculated Generating Plots & Calculating R^2")
         samplesheet_title = samplesheet_path.split("/")[-1].replace(".txt","")
-        output = make_lin_reg_classifier_overall(prs_values,"PRS","P",samplesheet_title)
+        output = make_lin_reg_classifier_overall(prs_values,"PRS","P",samplesheet_title,use_pcs)
 elif prs_values.empty:
     print("PRS Table Empty Check Execution")   
 elif not calc_auc and not prs_values.empty:
     print(f"PRS Calculated and printed to {samplesheet_path}_{snpsheet_path}_Mediated_PRS.txt")
 else:
     print("Bad Selection.Check execution")
-
