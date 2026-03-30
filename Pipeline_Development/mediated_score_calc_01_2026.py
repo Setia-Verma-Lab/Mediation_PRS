@@ -200,7 +200,7 @@ filtered_genotypes = pd.read_csv(f"{plink_output_prefix}_filtered.raw",index_col
 # if not chr_dfs:
 #     filtered_genotypes_chr_sep = pd.concat(chr_dfs,axis=1)
 #     filtered_genotypes = pd.concat([filtered_genotypes,filtered_genotypes_chr_sep],axis=1)
-# else:
+# else:las
 #     print("File is not chr-seperated Proceeding with Original raw function")
 
 print(f'this is the filtered_geno_df {filtered_genotypes.head()}')
@@ -212,15 +212,15 @@ mediator_snps = {}
 
 # mediated_phenotype_snps.update({row["SNP_ID"]:row["BETA_MP"]for _, row in snp_sheet.iterrows()})
 # mediator_snps.update({row["SNP_ID"]: row["BETA_M"] for _, row in snp_sheet.iterrows()})
-
-
+print("SNP IDS CHECK")
+print(snp_sheet["SNP_ID"].head(10))
 mediated_phenotype_snps.update({
-    row["SNP_ID"].replace("chr", ""): row["BETA_MP"]
+    row["SNP_ID"] + (f"_{row['EA_MP']}"): row["BETA_MP"]
     for _, row in snp_sheet.iterrows()
 })
 
 mediator_snps.update({
-    row["SNP_ID"].replace("chr", ""): row["BETA_M"] if row["EA_M"] == row["EA_MP"] else -row["BETA_M"]
+    row["SNP_ID"] + (f"_{row['EA_M']}"): row["BETA_M"] if row["EA_M"] == row["EA_MP"] else -row["BETA_M"]
     for _, row in snp_sheet.iterrows()
 })
 
@@ -234,13 +234,10 @@ plink_output_prefix = plink_prefix.split("/")[-1]
 #filtered_genotypes = pd.read_csv(f"{plink_output_prefix}_filtered.raw",index_col='IID',sep="\s+")
 
 #filtered_genotypes.drop(columns=["PAT","MAT","SEX","PHENOTYPE","FID"],inplace=True) 07/2025
-filtered_genotypes.columns = filtered_genotypes.columns.str.split(":").str[0:2].str.join(":").str.replace("chr", "", regex=True)
-print(filtered_genotypes.columns)
+# filtered_genotypes.coxflumns = filtered_genotypes.columns.str.split(":").str[0:2].str.join(":").str.replace("chr", "", regex=True)
+# print(filtered_genotypes.columns)
 # filtered_genotypes = 2-filtered_genotypes #assumes effect allele
-filtered_genotypes.to_csv(f"{plink_output_prefix}_filtered.raw",sep="\t")
-filtered_genotypes_file = pd.read_table(f"{plink_output_prefix}_filtered.raw",index_col='IID')
-print("Genotype DF Made !")
-duplicates = filtered_genotypes_file.index[filtered_genotypes_file.index.duplicated()]
+duplicates = filtered_genotypes.index[filtered_genotypes.index.duplicated()]
 # Print duplicates
 print("Filtered Genotypes Duplicate indices:", duplicates.tolist())
 duplicates = samplesheet.index[samplesheet.index.duplicated()]
@@ -251,33 +248,31 @@ print(samplesheet.index.isna())
 
 
 #make df with genotype and mediator 
-genotype_and_mediator = pd.concat([filtered_genotypes_file,samplesheet],axis=1,join="inner")
-genotype_and_mediator.columns = genotype_and_mediator.columns.str.replace(r'_[ACGT]+$', '', regex=True)
+genotype_and_mediator = pd.concat([filtered_genotypes,samplesheet],axis=1,join="inner")
 
-
-
-print("genotype_and_mediator DF")
-print(genotype_and_mediator)
 
 print("genotype_and_mediator columns")
 print(genotype_and_mediator.columns.tolist())
 
 print("THESE ARE SNP IDS")
-print(snp_ids)
+print(snp_ids.head(10))
+
+formatted_snp_ids = snp_sheet["SNP_ID"] + "_" + snp_sheet["EA_MP"] # add effect allele to snp ids to match with raw file snp ids
+print("THESE ARE FORMATTED SNP IDS")
+print(formatted_snp_ids.head(10))
 
 
 print("Making File for PRS Calculation")
 mediated_phenotype_col_list = []
 mediator_col_list  = []
-# TODO: change lines 148-156 to make new snp_list print dropped snps and do score calc/weighting at one time
 
-clean_snp_list = [snp for snp in snp_ids if snp in list(genotype_and_mediator.columns)]
-dropped_snps = list(set(snp_ids) - set(clean_snp_list))
+clean_snp_list = [snp for snp in formatted_snp_ids if snp in list(genotype_and_mediator.columns)]
+dropped_snps = list(set(formatted_snp_ids) - set(clean_snp_list))
 dropped_snps = pd.Series(data=dropped_snps)
 
 
-print(f"{(len(clean_snp_list)/ len(snp_ids)) * 100} % of variants matched")
-print(f"{(dropped_snps.shape[0]/len(snp_ids))* 100} % of variants dropped")
+print(f"{(len(clean_snp_list)/ len(formatted_snp_ids)) * 100} % of variants matched")
+print(f"{(dropped_snps.shape[0]/len(formatted_snp_ids))* 100} % of variants dropped")
 
 for snp in clean_snp_list:
     genotype_and_mediator[f"{snp}_m"] = genotype_and_mediator[f"{snp}"] * mediator_snps[f"{snp}"] # multiply genotype by mediator beta
