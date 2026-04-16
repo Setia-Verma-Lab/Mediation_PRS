@@ -5,9 +5,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import RocCurveDisplay
+from sklearn.metrics import PrecisionRecallDisplay
+from sklearn.metrics import average_precision_score
 from sklearn import metrics
 from sklearn.metrics import r2_score
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import mean_squared_error
+
 import subprocess
 import argparse
 import os
@@ -74,9 +79,14 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=0)
     clf = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
     clf.fit(X_train, y_train)
-    y_preds = clf.predict_proba(X_test)
+    clf_tuned = TunedThresholdClassifierCV(
+        clf, scoring="balanced_accuracy"
+        ).fit(X_train, y_train)
+    y_preds = clf_tuned.predict_proba(X_test)
     y_probs = y_preds[:,1]
     y_pred_prob_binary = (y_probs > 0.5).astype(int)
+
+    #AUROC
     fpr, tpr, thresholds = metrics.roc_curve(y_test,y_probs)
     roc_auc = metrics.auc(fpr, tpr)
     print(roc_auc)
@@ -88,7 +98,8 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     se_roc_auc = math.sqrt((roc_auc*(1 - roc_auc) + (n1 - 1)*(q1 - roc_auc**2) + (n2 - 1)*(q2 - roc_auc**2)) / (n1*n2))
     roc_auc_ci = 1.96*se_roc_auc
     
-    
+    #PRAUC
+    prauc =  average_precision_score(y_test,y_preds)
     # Accuracy
     accuracy = accuracy_score(y_test,y_pred_prob_binary)
     n = len(y_test)  # Total number of samples
@@ -100,6 +111,16 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     spread = z * math.sqrt(max(0, (accuracy * (1 - accuracy) + z**2 / (4 * n)) / denominator))
     acc_conf_int = spread
 
+    #Balanced Accuracy
+
+    balanced_accuracy = balanced_accuracy_score(y_test,y_pred_prob_binary)
+    correct_balanced = int(balanced_accuracy * n)  # Number of correct predictions
+    denominator_balanced = 1 + z**2/n
+    p_adj_balanced = (correct_balanced + z**2/2)/denominator_balanced
+    balanced_accuracy_spread = z * math.sqrt(max(0, (balanced_accuracy * (1 - balanced_accuracy) + z**2 / (4 * n)) / denominator_balanced))
+    bal_acc_conf_int = balanced_accuracy_spread
+
+
     #sensity & specificity calc
     sensitivity = recall_score(y_test, y_pred_prob_binary)
     specificity = recall_score(np.logical_not(y_test), np.logical_not(y_pred_prob_binary))
@@ -107,40 +128,67 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     #brier score
     brier_score = brier_score_loss(y_test, y_probs)
 
-
+    print(f"========={title} Performance Metrics=========")
     print(f"{title} AUROC:{roc_auc}\u00b1{roc_auc_ci}")
     print(f"{title} Accuracy:{accuracy}\u00b1{acc_conf_int}")
+    print(f"{title} Balanced Accuracy: {balanced_accuracy}\u00b1{bal_acc_conf_int}")
+    print(f"{title} PRAUC:{prauc}")
     print(f"{title} Sensitivity:{sensitivity}")
     print(f"{title} Specificity:{specificity}")
     print(f"{title} brier_score:{brier_score}")
 
     performance_metrics = {"AUROC":[roc_auc],"Accuracy":[accuracy],"Sensitivity":[sensitivity],
-    "Specificity":[specificity],"brier_score":[brier_score]}
+    "Specificity":[specificity],"brier_score":[brier_score],"PRAUC":[prauc]}
     performance_metrics_df = pd.DataFrame.from_dict(performance_metrics)
 
-    display = RocCurveDisplay.from_estimator(clf, X_test, y_test,name=f'{score},title:{title}')
+    display = RocCurveDisplay.from_estimator(clf_tuned, X_test, y_test,name=f'{score},title:{title}')
     display.plot()
     plt.savefig(f"./{title}_AUC_ROC.png")  
     return clf,roc_auc,display,performance_metrics_df
 
 
-def make_lin_reg_classifier_overall(input,score,pheno,title):
-    df = input[[score] +[pheno] + ["PC1","PC2","PC3","PC4"]]
-    df = df.dropna()
-    print(df.columns)
-    df[[score]] = df[[score]].apply(lambda x: (x - x.mean()) / x.std())
-    X = df[[score]+ ["PC1","PC2","PC3","PC4"]]
-    y = df[[pheno]]
+def make_lin_reg_classifier_overall(input_df,score,pheno,title,pcs):
+    if pcs > 0:
+        n = pcs + 1
+        df_pc_list = list(range(1, n))
+        df_pc_formatted_list = [f"PC{n}" for n in df_pc_list]
+        df = input_df[[score] + [pheno] + df_pc_formatted_list].copy()
+        df[score] = (df[score] - df[score].mean()) / df[score].std()
+        df = df.dropna()
+        df = df.astype('float64')
+        print(df.columns)
+        X = df[[score] + df_pc_formatted_list]
+        y = df[pheno]
+    else:
+        df = input_df[[score] + [pheno]].copy()
+        df[score] = (df[score] - df[score].mean()) / df[score].std()
+        df = df.dropna()
+        df = df.astype('float64')
+        print(df.columns)
+        X = df[[score]]
+        y = df[pheno]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=0)
     clf = LinearRegression(positive=True)
     y_preds = clf.fit(X_train,y_train).predict(X_test)
+
+    #R^2
     rscore = r2_score(y_test,y_preds)
-    print(f"{title} R^2: {rscore}")
+    se = sqrt((4*rscore*((1-rscore)**2)*((n-k-1)**2))/((n**2-1)*(n + 3)))
+    r2ci = 2*se
+
+    #MSE
+    mse = mean_squared_error(y_test, y_preds)
+
+    print(f'========={title} Performance Metrics=========')
+    print(f"R^2: {rscore}\u00b1{r2ci}")
+    print(f"Mean Squared Error:{mse}")
+
     plt.plot(X_test, y_preds, color="blue", linewidth=3)
     plt.xticks(())
     plt.yticks(())
     display = plt.show()
     return clf,rscore,display
+
 
 
 
@@ -187,56 +235,26 @@ plink_output_prefix = plink_prefix.split("/")[-1]
 
 filtered_genotypes = pd.read_csv(f"{plink_output_prefix}_filtered.raw",index_col='IID',sep="\s+" )
 
-# chrs = list(range(1,23))
-# chr_dfs = []
-# plink_output_prefix = plink_prefix.split("/")[-1]
-# print(plink_output_prefix)
-# for chr in chrs:
-#     if os.path.isfile(f"{plink_output_prefix}{chr}_filtered.raw"):
-#         temp=pd.read_csv(f"{plink_output_prefix}{chr}_filtered.raw",index_col='IID',sep="\s+")
-#         chr_dfs.append(temp)
-# print(chr_dfs)
-
-# if not chr_dfs:
-#     filtered_genotypes_chr_sep = pd.concat(chr_dfs,axis=1)
-#     filtered_genotypes = pd.concat([filtered_genotypes,filtered_genotypes_chr_sep],axis=1)
-# else:las
-#     print("File is not chr-seperated Proceeding with Original raw function")
-
 print(f'this is the filtered_geno_df {filtered_genotypes.head()}')
 
 #print(filtered_genotypes.columns)
 # process 1 parse input sheet and split into two groups to create dictionaries of diff snps
 mediated_phenotype_snps = {}
 mediator_snps = {}
-
-# mediated_phenotype_snps.update({row["SNP_ID"]:row["BETA_MP"]for _, row in snp_sheet.iterrows()})
-# mediator_snps.update({row["SNP_ID"]: row["BETA_M"] for _, row in snp_sheet.iterrows()})
 print("SNP IDS CHECK")
 print(snp_sheet["SNP_ID"].head(10))
+# dictionaries with SNPIDS formatted to match plink 2 output format
 mediated_phenotype_snps.update({
     row["SNP_ID"] + (f"_{row['EA_MP']}"): row["BETA_MP"]
     for _, row in snp_sheet.iterrows()
-})
+}) # maintain betas from mediated phenotyype GWAS
 
 mediator_snps.update({
     row["SNP_ID"] + (f"_{row['EA_M']}"): row["BETA_M"] if row["EA_M"] == row["EA_MP"] else -row["BETA_M"]
-    for _, row in snp_sheet.iterrows()
+    for _, row in snp_sheet.iterrows() # if the EA_M is the same as EA_MP then the Mediator GWAS Beta is maintained if not it is reverse
 })
 
-# mediator_snps["BETA_M"] = plink_weights.apply(lambda row: row["BETA_M"] if row["EA_M"] == row["EA_MP"] else (-1 * row["BETA_M"]), axis=1) 
 
-print("MEDIATOR SNPS")
-print(mediator_snps)
-
-#filtered_genotypes = genotypes_subset.set_index("ID")
-plink_output_prefix = plink_prefix.split("/")[-1]
-#filtered_genotypes = pd.read_csv(f"{plink_output_prefix}_filtered.raw",index_col='IID',sep="\s+")
-
-#filtered_genotypes.drop(columns=["PAT","MAT","SEX","PHENOTYPE","FID"],inplace=True) 07/2025
-# filtered_genotypes.coxflumns = filtered_genotypes.columns.str.split(":").str[0:2].str.join(":").str.replace("chr", "", regex=True)
-# print(filtered_genotypes.columns)
-# filtered_genotypes = 2-filtered_genotypes #assumes effect allele
 duplicates = filtered_genotypes.index[filtered_genotypes.index.duplicated()]
 # Print duplicates
 print("Filtered Genotypes Duplicate indices:", duplicates.tolist())
@@ -249,13 +267,8 @@ print(samplesheet.index.isna())
 
 #make df with genotype and mediator 
 genotype_and_mediator = pd.concat([filtered_genotypes,samplesheet],axis=1,join="inner")
-
-
-print("genotype_and_mediator columns")
-print(genotype_and_mediator.columns.tolist())
-
-print("THESE ARE SNP IDS")
-print(snp_ids.head(10))
+print(f"This is the dataframe used to calculate PRS")
+print(f"{genotype_and_mediator.head()}")
 
 formatted_snp_ids = snp_sheet["SNP_ID"] + "_" + snp_sheet["EA_MP"] # add effect allele to snp ids to match with raw file snp ids
 print("THESE ARE FORMATTED SNP IDS")
@@ -290,30 +303,24 @@ print("STARTING PRS VALUE DF")
 
 use_pcs = int(use_pcs)
 
+# PRS_P = BETA_MP PRS
 prs_values['PRS_P'] = genotype_and_mediator[mediated_phenotype_col_list].sum(axis=1) 
-# prs_values['PRS_P'] = prs_values['PRS_P'].apply(lambda x: (x - prs_values['PRS_P'].mean()) / prs_values['PRS_P'].std())
-# Mediated Phenotype * Mediated Phenotype Individual
+# PRS_M = Mediated Phenotype Individual Value * BETA_M PRS
 prs_values['PRS_M'] = genotype_and_mediator["M"].values * genotype_and_mediator[mediator_col_list].sum(axis=1)
-#prs_values['PRS_M'] = prs_values['PRS_M'].apply(lambda x: (x - prs_values['PRS_M'].mean()) / prs_values['PRS_M'].std())
 # Mediated PRS sum of PRS_M for PRS_P
 prs_values["PRS"] = prs_values[['PRS_P', 'PRS_M']].sum(axis=1) 
 prs_values[[f"PC{n}" for n in range(1, use_pcs + 1)]] = genotype_and_mediator[[f"PC{n}" for n in range(1, use_pcs + 1) ]].copy()
 prs_values = prs_values.dropna()
-print(prs_values)
-print(prs_values.dtypes)
-print(samplesheet.dtypes)
 
-print("ENDING PRS VALUE DF")
-
+print(f"PRS Values Caluclated for {prs_values.shape[0]} individuals")
 
 folder = "./"
-filename = f"{snpsheet_path.split('/')[-1]}_Mediated_PRS_output.txt"
+filename = f"{snpsheet_path.split('/')[-1].str.replace("txt","")}_Mediated_PRS_output.txt"
 full_path = os.path.join(folder, filename)
 
 prs_values.to_csv(full_path, sep="\t")
 
-#prs_values.to_csv(f"{snpsheet_path}_Mediated_PRS_output.txt")
-#prs_values.to_csv(f"./IOP_asjusted_PRS_values.txt")
+print(f"PRS Values Caluclated saved to {full_path}")
 
 if calc_auc and not prs_values.empty:
     if type_of_pheno == "binary":
