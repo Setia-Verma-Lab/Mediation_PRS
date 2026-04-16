@@ -22,7 +22,7 @@ Tab-separated, any extension. One row per individual. Must have a header row. Th
 | `IID` | Required | Must match `.fam` IDs exactly |
 | `P` | Required | Phenotype column. Binary: 0/1 or 1/2 — must be consistent with `--type_of_pheno`. Quantitative: numeric. |
 | `M` | Required | Mediator value per individual (numeric) |
-| `PC1`–`PC4` | Required if `--use_pcs` | Principal components; must be numeric |
+| `PC*` | Required if `--use_pcs` | Principal components; must be numeric |
 
 To include additonal covariates in samplesheet please pass comma seperated list to `--use-covars` argument
 
@@ -55,7 +55,7 @@ Provide the path prefix only — do not include the file extension (`.bed`/`.bim
 | `--skip_raw` | *(flag)* Skip re-running the PLINK filtering shell script and use an existing `*_filtered.raw` file. |
 | `--calculate_auc` | *(flag)* After scoring, run a logistic or linear regression classifier and output performance metrics and a ROC plot. |
 | `--type_of_pheno VALUE` | `binary` or `quantitative`. Required when `--calculate_auc` is used. |
-| `--use_pcs` | *(flag)* Include `PC1`–`PC4` from the SAMPLESHEET as covariates in the classifier model. |
+| `--use_pcs` | *(flag)* Include `PC1 - PC*` from the SAMPLESHEET as covariates in the classifier model where * is an integer passed to this argument. |
 | `--use-covars` |  *(flag)* Include additonal covariate columns from SAMPLESHEET provided as comma seperated list (e.g 'AGE,SEX,BMI') |
 
 ---
