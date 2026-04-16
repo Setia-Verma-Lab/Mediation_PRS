@@ -33,6 +33,7 @@ parser.add_argument("--skip_raw",action="store_true",help="skip making raw files
 parser.add_argument("--calculate_auc",action="store_true",help="calculate auc & make plots?")
 parser.add_argument("--type_of_pheno",help="binary or quantitative phenotype")
 parser.add_argument("--use_pcs")
+parser.add_argument("--use-covars",help="additional covariates used to test prs")
 
 args = parser.parse_args()
 
@@ -43,6 +44,7 @@ calc_auc = args.calculate_auc
 type_of_pheno = args.type_of_pheno
 use_pcs = args.use_pcs
 skip_raw = args.skip_raw
+use_covars = args.use_covars.split(",")
 print(f'Value of skip_raw: {skip_raw}')
 
 
@@ -56,17 +58,17 @@ def make_raw_files(plink_input):
     os.environ["plink_output_prefix"] = plink_input.split("/")[-1]
     os.system("bash genotype_filter_01_2026.sh")
 
-def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
+def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     if pcs > 0:
         n = pcs + 1
         df_pc_list = list(range(1, n))
         df_pc_formatted_list = [f"PC{n}" for n in df_pc_list]
-        df = input_df[[score] + [pheno] + df_pc_formatted_list].copy()
+        df = input_df[[score] + [pheno] + df_pc_formatted_list + covars].copy()
         df[score] = (df[score] - df[score].mean()) / df[score].std()
         df = df.dropna()
         df = df.astype('float64')
         print(df.columns)
-        X = df[[score] + df_pc_formatted_list]
+        X = df[[score] + df_pc_formatted_list + covars]
         y = df[pheno]
     else:
         df = input_df[[score] + [pheno]].copy()
@@ -147,17 +149,17 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, pcs):
     return clf,roc_auc,display,performance_metrics_df
 
 
-def make_lin_reg_classifier_overall(input_df,score,pheno,title,pcs):
+def make_lin_reg_classifier_overall(input_df,score,pheno,title,covars,pcs):
     if pcs > 0:
         n = pcs + 1
         df_pc_list = list(range(1, n))
         df_pc_formatted_list = [f"PC{n}" for n in df_pc_list]
-        df = input_df[[score] + [pheno] + df_pc_formatted_list].copy()
+        df = input_df[[score] + [pheno] + df_pc_formatted_list + covars].copy()
         df[score] = (df[score] - df[score].mean()) / df[score].std()
         df = df.dropna()
         df = df.astype('float64')
         print(df.columns)
-        X = df[[score] + df_pc_formatted_list]
+        X = df[[score] + df_pc_formatted_list + covars]
         y = df[pheno]
     else:
         df = input_df[[score] + [pheno]].copy()
@@ -308,8 +310,11 @@ prs_values['PRS_P'] = genotype_and_mediator[mediated_phenotype_col_list].sum(axi
 # PRS_M = Mediated Phenotype Individual Value * BETA_M PRS
 prs_values['PRS_M'] = genotype_and_mediator["M"].values * genotype_and_mediator[mediator_col_list].sum(axis=1)
 # Mediated PRS sum of PRS_M for PRS_P
-prs_values["PRS"] = prs_values[['PRS_P', 'PRS_M']].sum(axis=1) 
-prs_values[[f"PC{n}" for n in range(1, use_pcs + 1)]] = genotype_and_mediator[[f"PC{n}" for n in range(1, use_pcs + 1) ]].copy()
+prs_values["PRS"] = prs_values[['PRS_P', 'PRS_M']].sum(axis=1)
+if use_pcs > 0:
+    prs_values[[f"PC{n}" for n in range(1, use_pcs + 1)]] = genotype_and_mediator[[f"PC{n}" for n in range(1, use_pcs + 1) ]].copy()
+if len(use_covars) > 0: 
+    prs_values[use_covars] = genotype_and_mediator[use_covars].copy()
 prs_values = prs_values.dropna()
 
 print(f"PRS Values Caluclated for {prs_values.shape[0]} individuals")

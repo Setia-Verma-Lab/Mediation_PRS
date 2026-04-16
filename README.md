@@ -5,7 +5,7 @@
 
 ## 1  Overview
 
-This script computes a Mediated Polygenic Risk Score (Mediated PRS) that combines a standard GWAS-weighted PRS with a mediator-adjusted component. It accepts genotype data in PLINK binary format, a SNP weight sheet, and a sample phenotype/covariate sheet, then outputs per-sample PRS values and (optionally) classifier performance metrics and ROC plots. Prior to running this script you should have gather effect sizes from two GWASes conducted in datsets independent of your test cohort. One GWAS should be your Mediated Phenotype (MP) adjusted by Mediator (M).The other should be a GWAS of you Mediator (M)
+This script computes a Mediated Polygenic Risk Score (Mediated PRS) that combines a standard GWAS-weighted PRS with a mediator-adjusted component [(Thom CS,...,Vujkovic M, Voight BF., 2020)](https://pubmed.ncbi.nlm.nih.gov/32833022/) . It accepts genotype data in PLINK binary format, a SNP weight sheet, and a sample phenotype/covariate sheet, then outputs per-sample PRS values and (optionally) classifier performance metrics and ROC plots. Prior to running this script you should have gather effect sizes from two GWASes conducted in datsets independent of your test cohort. One GWAS should be your Mediated Phenotype (MP) adjusted by Mediator (M).The other should be a GWAS of you Mediator (M)
 
 - **Script file:** `mediated_score_calc_01_2026.py`
 - **External dependency:** `genotype_filter_01_2026.sh` (must be in the working directory unless `--skip_raw` is used)
@@ -23,6 +23,8 @@ Tab-separated, any extension. One row per individual. Must have a header row. Th
 | `P` | Required | Phenotype column. Binary: 0/1 or 1/2 — must be consistent with `--type_of_pheno`. Quantitative: numeric. |
 | `M` | Required | Mediator value per individual (numeric) |
 | `PC1`–`PC4` | Required if `--use_pcs` | Principal components; must be numeric |
+
+To include additonal covariates in samplesheet please pass comma seperated list to `--use-covars` argument
 
 ### 2.2  SNPSHEET — `--snpsheet`
 Whitespace-separated, one row per SNP. Used to extract variants from PLINK files, build the effect-allele file, and weight genotypes.
@@ -54,6 +56,7 @@ Provide the path prefix only — do not include the file extension (`.bed`/`.bim
 | `--calculate_auc` | *(flag)* After scoring, run a logistic or linear regression classifier and output performance metrics and a ROC plot. |
 | `--type_of_pheno VALUE` | `binary` or `quantitative`. Required when `--calculate_auc` is used. |
 | `--use_pcs` | *(flag)* Include `PC1`–`PC4` from the SAMPLESHEET as covariates in the classifier model. |
+| `--use-covars` |  *(flag)* Include additonal covariate columns from SAMPLESHEET provided as comma seperated list (e.g 'AGE,SEX,BMI') |
 
 ---
 
@@ -186,10 +189,13 @@ The script computes three scores per individual:
 
 ## 9  Contact / Maintenance
 
-If you update the script location, add required columns or arguments, or change the shell script name, update Sections 2–5 of this guide accordingly.
+![Lab Logo](./assets/Setia-Verma-Logo_Horizontal-Color.png)
 
-- Script file: `mediated_score_calc_01_2026.py`
-- Shell dependency: `genotype_filter_01_2026.sh`
+*From the minds in Setia-Verma Lab at the University of Pennsylania* 
+
+For questions or issues contact [Lanna Caruth](mailto:lanna.caruth@pennmedicine.upenn.edu)
+
+Documentation generated with help of [Claude](https://claude.ai)
 
 ---
-*Update this document whenever the script interface changes.*
+
