@@ -47,7 +47,7 @@ skip_raw = args.skip_raw
 if args.use_covars != "":
     use_covars = args.use_covars.split(",")
 else:
-    use_covars = [""]
+    use_covars = []
 print(f'Value of skip_raw: {skip_raw}')
 
 
