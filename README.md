@@ -103,7 +103,7 @@ python mediated_score_calc_01_2026.py \
   --plink_prefix /path/to/plink/prefix \
   --calculate_auc \
   --type_of_pheno binary \
-  --use_pcs
+  --use_pcs 5
 ```
 
 ### 5.3  Skip PLINK Filtering (re-use existing `.raw` file)

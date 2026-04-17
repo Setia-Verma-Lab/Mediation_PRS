@@ -33,7 +33,7 @@ parser.add_argument("--skip_raw",action="store_true",help="skip making raw files
 parser.add_argument("--calculate_auc",action="store_true",help="calculate auc & make plots?")
 parser.add_argument("--type_of_pheno",help="binary or quantitative phenotype")
 parser.add_argument("--use_pcs")
-parser.add_argument("--use-covars",help="additional covariates used to test prs")
+parser.add_argument("--use-covars",help="additional covariates used to test prs",default="")
 
 args = parser.parse_args()
 
@@ -44,7 +44,10 @@ calc_auc = args.calculate_auc
 type_of_pheno = args.type_of_pheno
 use_pcs = args.use_pcs
 skip_raw = args.skip_raw
-use_covars = args.use_covars.split(",")
+if args.use_covars != "":
+    use_covars = args.use_covars.split(",")
+else:
+    use_covars = [""]
 print(f'Value of skip_raw: {skip_raw}')
 
 
@@ -227,7 +230,7 @@ effect_allele_file['A1'] = snp_sheet['EA_MP']
 effect_allele_file.to_csv(f"plink_{samplesheet_path.split('/')[-1]}_ea_file.txt",sep="\t",index=False)
 
 # make raw files to use as genotype df
-if skip_raw == False:
+if not skip_raw:
     print("Making Raw Files...")
     make_raw_files(plink_prefix)
 else:
@@ -320,7 +323,7 @@ prs_values = prs_values.dropna()
 print(f"PRS Values Caluclated for {prs_values.shape[0]} individuals")
 
 folder = "./"
-filename = f"{snpsheet_path.split('/')[-1].str.replace("txt","")}_Mediated_PRS_output.txt"
+filename = f"{snpsheet_path.split('/')[-1].str.replace('txt','')}_Mediated_PRS_output.txt"
 full_path = os.path.join(folder, filename)
 
 prs_values.to_csv(full_path, sep="\t")
