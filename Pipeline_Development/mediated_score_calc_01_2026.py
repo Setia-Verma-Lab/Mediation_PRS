@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import TunedThresholdClassifierCV, train_test_split
+from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.metrics import RocCurveDisplay
 from sklearn.metrics import PrecisionRecallDisplay
 from sklearn.metrics import average_precision_score
@@ -82,11 +82,13 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
         X = df[[score]]
         y = df[pheno]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=0)
-    clf = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
+    parameters = {'threshold': [round(x, 1) for x in np.arange(0, 1.1, 0.1)]}
+    lr = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
+    clf =  GridSearchCV(lr,
+                        parameters,['balanced_accuracy','roc_auc'],
+                        refit="balanced_accuracy")
     clf.fit(X_train, y_train)
-    clf_tuned = TunedThresholdClassifierCV(
-        clf, scoring="balanced_accuracy"
-        ).fit(X_train, y_train)
+    clf_tuned = clf.best_estimator_
     y_preds = clf_tuned.predict_proba(X_test)
     y_probs = y_preds[:,1]
     y_pred_prob_binary = (y_probs > 0.5).astype(int)
