@@ -335,7 +335,7 @@ if calc_auc and not prs_values.empty:
         print("PRS Calculated Generating Plots & Calculating AUC")
         samplesheet_title = samplesheet_path.split("/")[-1].replace(".txt","")
         # output = make_log_reg_classifier_overall(prs_values,"PRS","P",samplesheet_title)
-        clf_prs,roc_auc_prs,display_prs,performance_metrics_prs = make_log_reg_classifier_overall(prs_values,"M","P",samplesheet_title,use_pcs)
+        clf_prs,roc_auc_prs,display_prs,performance_metrics_prs = make_log_reg_classifier_overall(prs_values,"PRS","P",samplesheet_title,use_pcs)
         performance_metrics_prs.to_csv(f"{samplesheet_title}_metrics.txt",index=False,sep="\t")
     elif type_of_pheno == "quantitative":
         print("PRS Calculated Generating Plots & Calculating R^2")
