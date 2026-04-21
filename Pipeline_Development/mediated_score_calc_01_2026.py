@@ -323,7 +323,7 @@ prs_values = prs_values.dropna()
 print(f"PRS Values Caluclated for {prs_values.shape[0]} individuals")
 
 folder = "./"
-filename = f"{snpsheet_path.split('/')[-1].str.replace('txt','')}_Mediated_PRS_output.txt"
+filename = f"{snpsheet_path.split('/')[-1].replace('txt','')}_Mediated_PRS_output.txt"
 full_path = os.path.join(folder, filename)
 
 prs_values.to_csv(full_path, sep="\t")
