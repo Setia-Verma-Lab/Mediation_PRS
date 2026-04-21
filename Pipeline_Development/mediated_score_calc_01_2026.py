@@ -9,6 +9,7 @@ from sklearn.metrics import PrecisionRecallDisplay
 from sklearn.metrics import average_precision_score
 from sklearn import metrics
 from sklearn.metrics import r2_score
+from sklearn.metrics import f1_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import mean_squared_error
@@ -82,14 +83,11 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
         X = df[[score]]
         y = df[pheno]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=0)
-    parameters = {'threshold': [round(x, 1) for x in np.arange(0, 1.1, 0.1)]}
-    lr = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
-    clf =  GridSearchCV(estimator=lr,
-                        param_grid=parameters,
-                        scoring=['balanced_accuracy','roc_auc'],
-                        refit="balanced_accuracy")
+    clf = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
     clf.fit(X_train, y_train)
-    clf_tuned = clf.best_estimator_
+    clf_tuned = TunedThresholdClassifierCV(
+        clf, scoring="balanced_accuracy"
+        ).fit(X_train, y_train)
     y_preds = clf_tuned.predict_proba(X_test)
     y_probs = y_preds[:,1]
     y_pred_prob_binary = (y_probs > 0.5).astype(int)
@@ -134,7 +132,7 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     specificity = recall_score(np.logical_not(y_test), np.logical_not(y_pred_prob_binary))
 
     #brier score
-    brier_score = brier_score_loss(y_test, y_probs)
+    brier_score = brier_score_loss(y_test, y_pred_prob_binary)
 
     print(f"========={title} Performance Metrics=========")
     print(f"{title} AUROC:{roc_auc}\u00b1{roc_auc_ci}")
