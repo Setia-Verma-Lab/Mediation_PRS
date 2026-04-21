@@ -84,8 +84,9 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=0)
     parameters = {'threshold': [round(x, 1) for x in np.arange(0, 1.1, 0.1)]}
     lr = LogisticRegression(random_state=0,multi_class='auto',solver='liblinear')
-    clf =  GridSearchCV(lr,
-                        parameters,['balanced_accuracy','roc_auc'],
+    clf =  GridSearchCV(estimator=lr,
+                        param_grid=parameters,
+                        scoring=['balanced_accuracy','roc_auc'],
                         refit="balanced_accuracy")
     clf.fit(X_train, y_train)
     clf_tuned = clf.best_estimator_
