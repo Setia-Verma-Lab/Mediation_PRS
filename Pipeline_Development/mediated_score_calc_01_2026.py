@@ -132,13 +132,13 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     brier_score = brier_score_loss(y_test, y_pred_prob_binary)
 
     print(f"========={title} Performance Metrics=========")
-    print(f"{title} AUROC:{roc_auc:.4f }\u00b1{roc_auc_ci:.4f}")
+    print(f"{title} AUROC:{roc_auc:.4f}\u00b1{roc_auc_ci:.4f}")
     print(f"{title} Accuracy:{accuracy:.4f}\u00b1{acc_conf_int:.4f}")
     print(f"{title} Balanced Accuracy: {balanced_accuracy:.4f}\u00b1{bal_acc_conf_int:.4f}")
     print(f"{title} PRAUC:{prauc:.4f}")
     print(f"{title} Sensitivity:{sensitivity:.4f}")
     print(f"{title} Specificity:{specificity:.4f}")
-    print(f"{title} brier_score:{brier_score:.4f}")
+    print(f"{title} Brier Score:{brier_score:.4f}")
 
     performance_metrics = {"AUROC":[roc_auc],"Accuracy":[accuracy],"Sensitivity":[sensitivity],
     "Specificity":[specificity],"brier_score":[brier_score],"PRAUC":[prauc]}
