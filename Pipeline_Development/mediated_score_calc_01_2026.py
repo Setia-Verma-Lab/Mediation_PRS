@@ -105,7 +105,7 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     #PRAUC
     prauc =  average_precision_score(y_test,y_probs)
     # Accuracy
-    accuracy = accuracy_score(y_test,y_pred_prob_binary)
+    accuracy = accuracy_score(y_test,y_probs)
     n = len(y_test)  # Total number of samples
     correct = int(accuracy * n)  # Number of correct predictions
     alpha = 0.05  # for 95% confidence interval
@@ -128,18 +128,17 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     #sensity & specificity calc
     sensitivity = recall_score(y_test, y_pred_prob_binary)
     specificity = recall_score(np.logical_not(y_test), np.logical_not(y_pred_prob_binary))
-    print("=========made it check #8==========")
     #brier score
     brier_score = brier_score_loss(y_test, y_pred_prob_binary)
 
     print(f"========={title} Performance Metrics=========")
-    print(f"{title} AUROC:{roc_auc}\u00b1{roc_auc_ci}")
-    print(f"{title} Accuracy:{accuracy}\u00b1{acc_conf_int}")
-    print(f"{title} Balanced Accuracy: {balanced_accuracy}\u00b1{bal_acc_conf_int}")
-    print(f"{title} PRAUC:{prauc}")
-    print(f"{title} Sensitivity:{sensitivity}")
-    print(f"{title} Specificity:{specificity}")
-    print(f"{title} brier_score:{brier_score}")
+    print(f"{title} AUROC:{roc_auc:.4f }\u00b1{roc_auc_ci:.4f}")
+    print(f"{title} Accuracy:{accuracy:.4f}\u00b1{acc_conf_int:.4f}")
+    print(f"{title} Balanced Accuracy: {balanced_accuracy:.4f}\u00b1{bal_acc_conf_int:.4f}")
+    print(f"{title} PRAUC:{prauc:.4f}")
+    print(f"{title} Sensitivity:{sensitivity:.4f}")
+    print(f"{title} Specificity:{specificity:.4f}")
+    print(f"{title} brier_score:{brier_score:.4f}")
 
     performance_metrics = {"AUROC":[roc_auc],"Accuracy":[accuracy],"Sensitivity":[sensitivity],
     "Specificity":[specificity],"brier_score":[brier_score],"PRAUC":[prauc]}
@@ -184,8 +183,8 @@ def make_lin_reg_classifier_overall(input_df,score,pheno,title,covars,pcs):
     mse = mean_squared_error(y_test, y_preds)
 
     print(f'========={title} Performance Metrics=========')
-    print(f"R^2: {rscore}\u00b1{r2ci}")
-    print(f"Mean Squared Error:{mse}")
+    print(f"R^2: {rscore:.4f}\u00b1{r2ci:.4f}")
+    print(f"Mean Squared Error:{mse:.4f}")
 
     plt.plot(X_test, y_preds, color="blue", linewidth=3)
     plt.xticks(())
