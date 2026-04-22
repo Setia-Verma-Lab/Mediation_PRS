@@ -21,7 +21,7 @@ Tab-separated, any extension. One row per individual. Must have a header row. Th
 |--------|-----------|-------|
 | `IID` | Required | Must match `.fam` IDs exactly |
 | `P` | Required | Phenotype column. Binary: 0/1 or 1/2 — must be consistent with `--type_of_pheno`. Quantitative: numeric. |
-| `M` | Required | Mediator value per individual (numeric) |
+| `M` | Required | Mediator value per individual. Can be binary or quantitative |
 | `PC*` | Required if `--use_pcs` | Principal components; must be numeric |
 
 To include additonal covariates in samplesheet please pass comma seperated list to `--use-covars` argument
@@ -62,24 +62,28 @@ Provide the path prefix only — do not include the file extension (`.bed`/`.bim
 
 ## 4  Pre-Flight Checklist
 
-### 4.1  Variant Alignment
+### 4.1 Envionment Setup
+- Use the provided `environment.yml` file to build a conda environment that contains all paclages required to succesfully run this script
+
+`conda create -f environment.yml`
+### 4.2  Variant Alignment
 - [ ] `SNP_ID` format in SNPSHEET matches the PLINK `.bim` IDs after `chr`-prefix stripping (script converts `chr1:12345` → `1:12345`).
 - [ ] No duplicate `SNP_ID` values in SNPSHEET.
 - [ ] `EA_MP` and `EA_M` columns are populated for every row — missing values cause silent score errors.
 - [ ] `BETA_MP` and `BETA_M` values are on the same scale (e.g., both log-odds, or both linear effect sizes).
 - [ ] Effect alleles are aligned to the same strand as the PLINK reference. The script does not perform strand-flip correction.
 
-### 4.2  Sample Alignment
+### 4.3  Sample Alignment
 - [ ] `IID` values in SAMPLESHEET match the second column of the `.fam` file exactly (case-sensitive).
 - [ ] No duplicate `IID` values in SAMPLESHEET (duplicates are detected and printed; both entries will be used unless removed).
 - [ ] No missing `IID` values (NaN rows are dropped at merge).
 
-### 4.3  Phenotype / Mediator Sanity
+### 4.4  Phenotype / Mediator Sanity
 - [ ] Phenotype column `P` is coded consistently: binary 0/1 (or 1/2) — confirm the exact coding expected by your downstream analysis.
 - [ ] Mediator column `M` is numeric with no unexpected string values (the script filters rows where `P == 'SUS'` before AUC calculation).
 - [ ] **If `--use_pcs` is set:** `PC1`, `PC2`, `PC3`, and `PC4` columns are present in SAMPLESHEET and are numeric.
 
-### 4.4  Runtime / File Dependencies
+### 4.5  Runtime / File Dependencies
 - [ ] `genotype_filter_01_2026.sh` is in the working directory (required unless `--skip_raw` is used).
 - [ ] If `--skip_raw` is set, the file `<plink_prefix>_filtered.raw` must already exist in the working directory.
 
