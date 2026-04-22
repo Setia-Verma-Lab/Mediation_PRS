@@ -89,7 +89,7 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
         ).fit(X_train, y_train)
     y_preds = clf_tuned.predict_proba(X_test)
     y_probs = y_preds[:,1]
-    y_pred_prob_binary = (y_probs > 0.5).astype(int)
+    y_pred_prob_binary = (y_probs > clf_tuned.best_threshold_).astype(int)
 
     #AUROC
     fpr, tpr, thresholds = metrics.roc_curve(y_test,y_probs)
