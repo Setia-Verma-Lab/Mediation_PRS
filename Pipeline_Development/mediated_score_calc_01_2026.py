@@ -105,7 +105,7 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     #PRAUC
     prauc =  average_precision_score(y_test,y_probs)
     # Accuracy
-    accuracy = accuracy_score(y_test,y_probs)
+    accuracy = clf.score(X_test,y_test)
     n = len(y_test)  # Total number of samples
     correct = int(accuracy * n)  # Number of correct predictions
     alpha = 0.05  # for 95% confidence interval
