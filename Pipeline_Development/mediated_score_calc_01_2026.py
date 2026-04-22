@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.model_selection import TunedThresholdClassifierCV, train_test_split
 from sklearn.metrics import RocCurveDisplay
 from sklearn.metrics import PrecisionRecallDisplay
 from sklearn.metrics import average_precision_score
@@ -13,7 +13,6 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import mean_squared_error
-
 import subprocess
 import argparse
 import os
