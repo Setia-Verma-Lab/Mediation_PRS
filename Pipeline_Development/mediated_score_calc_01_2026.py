@@ -90,11 +90,13 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     y_preds = clf_tuned.predict_proba(X_test)
     y_probs = y_preds[:,1]
     y_pred_prob_binary = (y_probs > 0.5).astype(int)
+    print("=========made it check #1==========")
 
     #AUROC
     fpr, tpr, thresholds = metrics.roc_curve(y_test,y_probs)
     roc_auc = metrics.auc(fpr, tpr)
     print(roc_auc)
+    print("=========made it check #2==========")
     y_test_vals = y_test.values.ravel()
     n1 = sum(y_test_vals == 1)
     n2 = sum(y_test_vals != 1)
@@ -102,11 +104,13 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     q2 = 2 * roc_auc**2 / (1 + roc_auc)
     se_roc_auc = math.sqrt((roc_auc*(1 - roc_auc) + (n1 - 1)*(q1 - roc_auc**2) + (n2 - 1)*(q2 - roc_auc**2)) / (n1*n2))
     roc_auc_ci = 1.96*se_roc_auc
-    
+    print("=========made it check #3==========")
     #PRAUC
     prauc =  average_precision_score(y_test,y_preds)
+    print("=========made it check #4==========")
     # Accuracy
     accuracy = accuracy_score(y_test,y_pred_prob_binary)
+    print("=========made it check #5==========")
     n = len(y_test)  # Total number of samples
     correct = int(accuracy * n)  # Number of correct predictions
     alpha = 0.05  # for 95% confidence interval
@@ -115,10 +119,12 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     p_adj = (correct + z**2/2)/denominator
     spread = z * math.sqrt(max(0, (accuracy * (1 - accuracy) + z**2 / (4 * n)) / denominator))
     acc_conf_int = spread
+    print("=========made it check #6==========")
 
     #Balanced Accuracy
 
     balanced_accuracy = balanced_accuracy_score(y_test,y_pred_prob_binary)
+    print("=========made it check #7==========")
     correct_balanced = int(balanced_accuracy * n)  # Number of correct predictions
     denominator_balanced = 1 + z**2/n
     p_adj_balanced = (correct_balanced + z**2/2)/denominator_balanced
@@ -129,7 +135,7 @@ def make_log_reg_classifier_overall(input_df, score, pheno, title, covars, pcs):
     #sensity & specificity calc
     sensitivity = recall_score(y_test, y_pred_prob_binary)
     specificity = recall_score(np.logical_not(y_test), np.logical_not(y_pred_prob_binary))
-
+    print("=========made it check #8==========")
     #brier score
     brier_score = brier_score_loss(y_test, y_pred_prob_binary)
 
